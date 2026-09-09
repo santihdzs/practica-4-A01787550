@@ -70,11 +70,20 @@ fun NewReviewScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            val errorDelServidor = uiState.errorAlGuardar
+            if (errorDelServidor != null) {
+                Text(
+                    text = errorDelServidor,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
             Button(
                 onClick = onSave,
                 enabled = uiState.canSave,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Publicar reseña") }
+            ) { Text(if (uiState.guardando) "Publicando…" else "Publicar reseña") }
         }
     }
 }

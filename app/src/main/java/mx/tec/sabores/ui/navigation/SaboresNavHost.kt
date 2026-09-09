@@ -103,12 +103,7 @@ fun SaboresApp() {
                     onStarsChange = formViewModel::onStarsChange,
                     onCommentChange = formViewModel::onCommentChange,
                     onSave = {
-                        viewModel.addReview(
-                            restaurantId = id,
-                            stars = formViewModel.uiState.stars,
-                            comment = formViewModel.uiState.comment
-                        )
-                        nav.popBackStack()
+                        formViewModel.publicar(id) { nav.popBackStack() }
                     },
                     onCancel = { nav.popBackStack() }
                 )

@@ -1,17 +1,25 @@
 package mx.tec.sabores.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,7 +32,9 @@ import androidx.navigation.navArgument
 import mx.tec.sabores.ui.screens.MyReviewsScreen
 import mx.tec.sabores.ui.screens.NewReviewScreen
 import mx.tec.sabores.ui.screens.RestaurantDetailScreen
+import mx.tec.sabores.domain.Review
 import mx.tec.sabores.ui.components.ErrorView
+import mx.tec.sabores.ui.components.StarPicker
 import mx.tec.sabores.ui.screens.RestaurantListScreen
 import mx.tec.sabores.ui.state.NewReviewViewModel
 import mx.tec.sabores.ui.state.SaboresViewModel
@@ -76,7 +86,46 @@ fun SaboresApp() {
             }
 
             composable(Route.MY_REVIEWS) {
-                MyReviewsScreen(items = viewModel.myReviews)
+                LaunchedEffect(Unit) { viewModel.cargarMisResenas() }
+
+                var enEdicion by remember { mutableStateOf<Review?>(null) }
+
+                MyReviewsScreen(
+                    estado = viewModel.misResenas,
+                    onReintentar = { viewModel.cargarMisResenas() },
+                    onEdit = { enEdicion = it }
+                )
+
+                val resena = enEdicion
+                if (resena != null) {
+                    var stars by remember(resena.id) { mutableStateOf(resena.stars) }
+                    var comment by remember(resena.id) { mutableStateOf(resena.comment) }
+
+                    AlertDialog(
+                        onDismissRequest = { enEdicion = null },
+                        title = { Text("Editar reseña") },
+                        text = {
+                            Column {
+                                StarPicker(value = stars, onValueChange = { stars = it })
+                                OutlinedTextField(
+                                    value = comment,
+                                    onValueChange = { comment = it },
+                                    label = { Text("Tu reseña") },
+                                    minLines = 3,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.editarResena(resena.id, stars, comment) { enEdicion = null }
+                            }) { Text("Guardar") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { enEdicion = null }) { Text("Cancelar") }
+                        }
+                    )
+                }
             }
 
             composable(

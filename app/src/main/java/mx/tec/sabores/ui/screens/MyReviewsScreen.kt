@@ -12,36 +12,60 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import mx.tec.sabores.domain.Review
+import mx.tec.sabores.ui.components.ErrorView
 import mx.tec.sabores.ui.components.StarsRow
-import mx.tec.sabores.ui.state.MyReviewItem
+import mx.tec.sabores.ui.state.UiState
 
 @Composable
-fun MyReviewsScreen(items: List<MyReviewItem>, modifier: Modifier = Modifier) {
-    if (items.isEmpty()) {
-        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Todavía no has reseñado ningún lugar.",
-                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun MyReviewsScreen(
+    estado: UiState<List<Review>>,
+    onReintentar: () -> Unit,
+    onEdit: (Review) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when (estado) {
+        is UiState.Cargando -> Box(
+            modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
         }
-        return
-    }
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(items) { item ->
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(item.restaurantName, style = MaterialTheme.typography.titleMedium)
-                    StarsRow(item.review.stars)
-                    Spacer(Modifier.height(6.dp))
-                    Text(item.review.comment, style = MaterialTheme.typography.bodyMedium)
+
+        is UiState.Error -> ErrorView(
+            mensaje = estado.mensaje,
+            onReintentar = onReintentar,
+            modifier = modifier
+        )
+
+        is UiState.Exito -> if (estado.datos.isEmpty()) {
+            Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Todavía no has reseñado ningún lugar.",
+                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(estado.datos, key = { it.id }) { review ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp)) {
+                            StarsRow(review.stars)
+                            Spacer(Modifier.height(6.dp))
+                            Text(review.comment, style = MaterialTheme.typography.bodyMedium)
+                            TextButton(onClick = { onEdit(review) }) { Text("Editar") }
+                        }
+                    }
                 }
             }
         }

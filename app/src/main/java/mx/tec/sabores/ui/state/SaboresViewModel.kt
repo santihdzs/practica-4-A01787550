@@ -11,11 +11,8 @@ import mx.tec.sabores.domain.RatingSummary
 import mx.tec.sabores.domain.Restaurant
 import mx.tec.sabores.domain.RestaurantEnLista
 import mx.tec.sabores.domain.Review
-import mx.tec.sabores.domain.ReviewValidator
 import retrofit2.HttpException
 import java.io.IOException
-
-data class MyReviewItem(val restaurantName: String, val review: Review)
 
 data class Detalle(
     val restaurant: Restaurant,
@@ -34,12 +31,11 @@ class SaboresViewModel : ViewModel() {
     var detalle by mutableStateOf<UiState<Detalle>>(UiState.Cargando)
         private set
 
+    var misResenas by mutableStateOf<UiState<List<Review>>>(UiState.Cargando)
+        private set
+
     // Shim transicional: la lista ya cargada resuelve el detalle sin pedir de nuevo.
     private var restaurantesCache: List<Restaurant> = emptyList()
-
-    // Estado que SI cambia: Compose se suscribe y recompone solo.
-    var reviews by mutableStateOf<List<Review>>(emptyList())
-        private set
 
     init { cargarRestaurantes() }
 
@@ -65,18 +61,29 @@ class SaboresViewModel : ViewModel() {
         }
     }
 
-    fun restaurantById(id: Int): Restaurant? = restaurantesCache.firstOrNull { it.id == id }
-
-    val myReviews: List<MyReviewItem>
-        get() = reviews.reversed().mapNotNull { review ->
-            restaurantById(review.restaurantId)?.let { MyReviewItem(it.name, review) }
+    fun cargarMisResenas() {
+        viewModelScope.launch {
+            misResenas = UiState.Cargando
+            misResenas = pedir { repository.getMyReviews() }
         }
+    }
+
+    fun restaurantById(id: Int): Restaurant? = restaurantesCache.firstOrNull { it.id == id }
 
     // --- eventos que llegan desde la UI ---
 
-    fun addReview(restaurantId: Int, stars: Int, comment: String) {
-        if (!ReviewValidator.isValid(stars, comment)) return
-        reviews = reviews + Review(id = 0, restaurantId = restaurantId, author = "", stars = stars, comment = comment.trim())
+    fun editarResena(id: Int, stars: Int?, comment: String?, alTerminar: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.editReview(id, stars, comment)
+                cargarMisResenas()
+                alTerminar()
+            } catch (e: IOException) {
+                misResenas = UiState.Error("No hay conexión. No se pudo editar.")
+            } catch (e: HttpException) {
+                misResenas = UiState.Error(mensajeDe(e))
+            }
+        }
     }
 
     private suspend fun <T> pedir(block: suspend () -> T): UiState<T> = try {

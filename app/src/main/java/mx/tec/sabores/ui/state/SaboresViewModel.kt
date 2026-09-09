@@ -17,11 +17,21 @@ import java.io.IOException
 
 data class MyReviewItem(val restaurantName: String, val review: Review)
 
+data class Detalle(
+    val restaurant: Restaurant,
+    val reviews: List<Review>
+) {
+    val summary: RatingSummary = RatingSummary.from(reviews)
+}
+
 class SaboresViewModel : ViewModel() {
 
     private val repository = RestaurantRepository()
 
     var restaurantes by mutableStateOf<UiState<List<RestaurantEnLista>>>(UiState.Cargando)
+        private set
+
+    var detalle by mutableStateOf<UiState<Detalle>>(UiState.Cargando)
         private set
 
     // Shim transicional: la lista ya cargada resuelve el detalle sin pedir de nuevo.
@@ -48,13 +58,14 @@ class SaboresViewModel : ViewModel() {
         }
     }
 
+    fun cargarDetalle(id: Int) {
+        viewModelScope.launch {
+            detalle = UiState.Cargando
+            detalle = pedir { Detalle(repository.getById(id), repository.getReviews(id)) }
+        }
+    }
+
     fun restaurantById(id: Int): Restaurant? = restaurantesCache.firstOrNull { it.id == id }
-
-    fun reviewsOf(restaurantId: Int): List<Review> =
-        reviews.filter { it.restaurantId == restaurantId }
-
-    fun summaryOf(restaurantId: Int): RatingSummary =
-        RatingSummary.from(reviewsOf(restaurantId))
 
     val myReviews: List<MyReviewItem>
         get() = reviews.reversed().mapNotNull { review ->
@@ -66,5 +77,13 @@ class SaboresViewModel : ViewModel() {
     fun addReview(restaurantId: Int, stars: Int, comment: String) {
         if (!ReviewValidator.isValid(stars, comment)) return
         reviews = reviews + Review(id = 0, restaurantId = restaurantId, author = "", stars = stars, comment = comment.trim())
+    }
+
+    private suspend fun <T> pedir(block: suspend () -> T): UiState<T> = try {
+        UiState.Exito(block())
+    } catch (e: IOException) {
+        UiState.Error("No hay conexión. Revisa tu internet.")
+    } catch (e: HttpException) {
+        UiState.Error(mensajeDe(e))
     }
 }

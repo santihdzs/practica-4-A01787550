@@ -1,13 +1,18 @@
 package mx.tec.sabores.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -19,9 +24,11 @@ import androidx.navigation.navArgument
 import mx.tec.sabores.ui.screens.MyReviewsScreen
 import mx.tec.sabores.ui.screens.NewReviewScreen
 import mx.tec.sabores.ui.screens.RestaurantDetailScreen
+import mx.tec.sabores.ui.components.ErrorView
 import mx.tec.sabores.ui.screens.RestaurantListScreen
 import mx.tec.sabores.ui.state.NewReviewViewModel
 import mx.tec.sabores.ui.state.SaboresViewModel
+import mx.tec.sabores.ui.state.UiState
 
 @Composable
 fun SaboresApp() {
@@ -77,15 +84,30 @@ fun SaboresApp() {
                 arguments = listOf(navArgument(Route.ARG_RESTAURANT_ID) { type = NavType.IntType })
             ) { entry ->
                 val id = entry.arguments?.getInt(Route.ARG_RESTAURANT_ID) ?: return@composable
-                 val restaurant = viewModel.restaurantById(id) ?: return@composable
 
-                RestaurantDetailScreen(
-                    restaurant = restaurant,
-                    summary = viewModel.summaryOf(id),
-                    reviews = viewModel.reviewsOf(id),
-                    onWriteReviewClick = { nav.navigate(Route.newReview(id)) },
-                    onBack = { nav.popBackStack() }
-                )
+                LaunchedEffect(id) { viewModel.cargarDetalle(id) }
+
+                when (val estado = viewModel.detalle) {
+                    is UiState.Cargando -> Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+
+                    is UiState.Error -> ErrorView(
+                        mensaje = estado.mensaje,
+                        onReintentar = { viewModel.cargarDetalle(id) }
+                    )
+
+                    is UiState.Exito -> RestaurantDetailScreen(
+                        restaurant = estado.datos.restaurant,
+                        summary = estado.datos.summary,
+                        reviews = estado.datos.reviews,
+                        onWriteReviewClick = { nav.navigate(Route.newReview(id)) },
+                        onBack = { nav.popBackStack() }
+                    )
+                }
             }
 
             composable(

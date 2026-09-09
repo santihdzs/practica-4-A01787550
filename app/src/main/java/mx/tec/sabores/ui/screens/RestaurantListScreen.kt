@@ -42,7 +42,12 @@ fun RestaurantListScreen(
 private fun ListPreview() {
     SaboresTheme {
         RestaurantListScreen(
-            restaurants = RestaurantRepository().getAll(),
+            restaurants = listOf(
+                Restaurant(1, "La Chinampa", "Mexicana", "Av. Garza Sada 300",
+                    "Cocina de mercado: tacos de guisado, sopes y agua del día.", 1, "🌮"),
+                Restaurant(2, "Nonna Rosa", "Italiana", "Río Nazas 118",
+                    "Pasta fresca hecha en casa y horno de leña a la vista.", 3, "🍝")
+            ),
             summaryOf = { RatingSummary(4.2, 3) },
             onRestaurantClick = {}
         )

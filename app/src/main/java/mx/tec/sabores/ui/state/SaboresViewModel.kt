@@ -40,6 +40,6 @@ class SaboresViewModel : ViewModel() {
 
     fun addReview(restaurantId: Int, stars: Int, comment: String) {
         if (!ReviewValidator.isValid(stars, comment)) return
-        reviews = reviews + Review(restaurantId, stars, comment.trim())
+        reviews = reviews + Review(id = 0, restaurantId = restaurantId, author = "", stars = stars, comment = comment.trim())
     }
 }

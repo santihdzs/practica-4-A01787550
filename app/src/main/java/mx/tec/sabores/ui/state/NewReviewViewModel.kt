@@ -58,10 +58,7 @@ class NewReviewViewModel(
                     errorAlGuardar = "No hay conexión. Tu reseña no se publicó."
                 )
             } catch (e: HttpException) {
-                uiState = uiState.copy(
-                    guardando = false,
-                    errorAlGuardar = "El servidor respondió ${e.code()}."
-                )
+                uiState = uiState.copy(guardando = false, errorAlGuardar = mensajeDe(e))
             }
         }
     }

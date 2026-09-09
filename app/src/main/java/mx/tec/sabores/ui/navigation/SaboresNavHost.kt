@@ -62,8 +62,8 @@ fun SaboresApp() {
 
             composable(Route.HOME) {
                 RestaurantListScreen(
-                    restaurants = viewModel.restaurants,
-                    summaryOf = { id -> viewModel.summaryOf(id) },
+                    estado = viewModel.restaurantes,
+                    onReintentar = { viewModel.cargarRestaurantes() },
                     onRestaurantClick = { id -> nav.navigate(Route.detail(id)) }
                 )
             }

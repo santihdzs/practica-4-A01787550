@@ -92,38 +92,20 @@ fun SaboresApp() {
 
                 MyReviewsScreen(
                     estado = viewModel.misResenas,
+                    nombreDe = { id -> viewModel.restaurantById(id)?.name ?: "Restaurante #$id" },
                     onReintentar = { viewModel.cargarMisResenas() },
-                    onEdit = { enEdicion = it }
+                    onEdit = { enEdicion = it },
+                    onDelete = { review -> viewModel.borrarResena(review.id) }
                 )
 
                 val resena = enEdicion
                 if (resena != null) {
-                    var stars by remember(resena.id) { mutableStateOf(resena.stars) }
-                    var comment by remember(resena.id) { mutableStateOf(resena.comment) }
-
-                    AlertDialog(
-                        onDismissRequest = { enEdicion = null },
-                        title = { Text("Editar reseña") },
-                        text = {
-                            Column {
-                                StarPicker(value = stars, onValueChange = { stars = it })
-                                OutlinedTextField(
-                                    value = comment,
-                                    onValueChange = { comment = it },
-                                    label = { Text("Tu reseña") },
-                                    minLines = 3,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                    EditarResenaDialog(
+                        resena = resena,
+                        onGuardar = { stars, comment ->
+                            viewModel.editarResena(resena.id, stars, comment) { enEdicion = null }
                         },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                viewModel.editarResena(resena.id, stars, comment) { enEdicion = null }
-                            }) { Text("Guardar") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { enEdicion = null }) { Text("Cancelar") }
-                        }
+                        onDismiss = { enEdicion = null }
                     )
                 }
             }
@@ -135,6 +117,8 @@ fun SaboresApp() {
                 val id = entry.arguments?.getInt(Route.ARG_RESTAURANT_ID) ?: return@composable
 
                 LaunchedEffect(id) { viewModel.cargarDetalle(id) }
+
+                var enEdicionDetalle by remember { mutableStateOf<Review?>(null) }
 
                 when (val estado = viewModel.detalle) {
                     is UiState.Cargando -> Box(
@@ -153,8 +137,27 @@ fun SaboresApp() {
                         restaurant = estado.datos.restaurant,
                         summary = estado.datos.summary,
                         reviews = estado.datos.reviews,
+                        alumno = viewModel.alumno,
                         onWriteReviewClick = { nav.navigate(Route.newReview(id)) },
+                        onEditReview = { enEdicionDetalle = it },
+                        onDeleteReview = { review ->
+                            viewModel.borrarResena(review.id) { viewModel.cargarDetalle(id) }
+                        },
                         onBack = { nav.popBackStack() }
+                    )
+                }
+
+                val enDetalle = enEdicionDetalle
+                if (enDetalle != null) {
+                    EditarResenaDialog(
+                        resena = enDetalle,
+                        onGuardar = { stars, comment ->
+                            viewModel.editarResena(enDetalle.id, stars, comment) {
+                                enEdicionDetalle = null
+                                viewModel.cargarDetalle(id)
+                            }
+                        },
+                        onDismiss = { enEdicionDetalle = null }
                     )
                 }
             }
@@ -181,4 +184,39 @@ fun SaboresApp() {
             }
         }
     }
+}
+
+// El mismo dialogo sirve para mis-resenas y para el detalle: la pantalla solo avisa
+// que se toco "Editar"; quien guarda es el ViewModel.
+@Composable
+private fun EditarResenaDialog(
+    resena: Review,
+    onGuardar: (Int, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var stars by remember(resena.id) { mutableStateOf(resena.stars) }
+    var comment by remember(resena.id) { mutableStateOf(resena.comment) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar reseña") },
+        text = {
+            Column {
+                StarPicker(value = stars, onValueChange = { stars = it })
+                OutlinedTextField(
+                    value = comment,
+                    onValueChange = { comment = it },
+                    label = { Text("Tu reseña") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onGuardar(stars, comment) }) { Text("Guardar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
 }

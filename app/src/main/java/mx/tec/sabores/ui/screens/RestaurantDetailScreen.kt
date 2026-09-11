@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -37,7 +39,10 @@ fun RestaurantDetailScreen(
     restaurant: Restaurant,
     summary: RatingSummary,
     reviews: List<Review>,
+    alumno: String,
     onWriteReviewClick: () -> Unit,
+    onEditReview: (Review) -> Unit,
+    onDeleteReview: (Review) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -98,6 +103,14 @@ fun RestaurantDetailScreen(
                             StarsRow(review.stars)
                             Spacer(Modifier.height(6.dp))
                             Text(review.comment, style = MaterialTheme.typography.bodyMedium)
+                            // Los botones solo aparecen en tus propias resenas.
+                            // El 403 del servidor es la red de seguridad, no la UI.
+                            if (review.author == alumno) {
+                                Row {
+                                    TextButton(onClick = { onEditReview(review) }) { Text("Editar") }
+                                    TextButton(onClick = { onDeleteReview(review) }) { Text("Borrar") }
+                                }
+                            }
                         }
                     }
                 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,8 +29,10 @@ import mx.tec.sabores.ui.state.UiState
 @Composable
 fun MyReviewsScreen(
     estado: UiState<List<Review>>,
+    nombreDe: (Int) -> String,
     onReintentar: () -> Unit,
     onEdit: (Review) -> Unit,
+    onDelete: (Review) -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (estado) {
@@ -60,10 +63,18 @@ fun MyReviewsScreen(
                 items(estado.datos, key = { it.id }) { review ->
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp)) {
+                            Text(
+                                nombreDe(review.restaurantId),
+                                style = MaterialTheme.typography.titleMedium
+                            )
                             StarsRow(review.stars)
                             Spacer(Modifier.height(6.dp))
                             Text(review.comment, style = MaterialTheme.typography.bodyMedium)
-                            TextButton(onClick = { onEdit(review) }) { Text("Editar") }
+                            // En esta pantalla todas las resenas son tuyas: no hay que filtrar.
+                            Row {
+                                TextButton(onClick = { onEdit(review) }) { Text("Editar") }
+                                TextButton(onClick = { onDelete(review) }) { Text("Borrar") }
+                            }
                         }
                     }
                 }

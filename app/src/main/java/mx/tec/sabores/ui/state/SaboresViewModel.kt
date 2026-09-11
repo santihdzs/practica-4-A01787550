@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import mx.tec.sabores.data.RestaurantRepository
+import mx.tec.sabores.data.remote.Network
 import mx.tec.sabores.domain.RatingSummary
 import mx.tec.sabores.domain.Restaurant
 import mx.tec.sabores.domain.RestaurantEnLista
@@ -70,6 +71,9 @@ class SaboresViewModel : ViewModel() {
 
     fun restaurantById(id: Int): Restaurant? = restaurantesCache.firstOrNull { it.id == id }
 
+    // La matrícula vive en la capa de red; la UI la lee de aquí, nunca la escribe.
+    val alumno: String get() = Network.alumno
+
     // --- eventos que llegan desde la UI ---
 
     fun editarResena(id: Int, stars: Int?, comment: String?, alTerminar: () -> Unit) {
@@ -80,6 +84,24 @@ class SaboresViewModel : ViewModel() {
                 alTerminar()
             } catch (e: IOException) {
                 misResenas = UiState.Error("No hay conexión. No se pudo editar.")
+            } catch (e: HttpException) {
+                misResenas = UiState.Error(mensajeDe(e))
+            }
+        }
+    }
+
+    fun borrarResena(id: Int, alTerminar: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val ok = repository.deleteReview(id)
+                if (ok) {
+                    cargarMisResenas()
+                    alTerminar()
+                } else {
+                    misResenas = UiState.Error("Esa reseña no es tuya.")
+                }
+            } catch (e: IOException) {
+                misResenas = UiState.Error("No hay conexión. No se pudo borrar.")
             } catch (e: HttpException) {
                 misResenas = UiState.Error(mensajeDe(e))
             }
